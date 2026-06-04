@@ -22,6 +22,64 @@
     admin: "Администратор"
   };
 
+  const roleFlows = {
+    client: {
+      title: "Кабинет клиента",
+      subtitle: "Создать заявку, понять проблему, выбрать мастера и не попасть на развод.",
+      steps: [
+        { title: "Опиши проблему", text: "Категория, город, симптом, фото/видео позже подключим к backend.", route: "requests", button: "Создать заявку" },
+        { title: "Проверь базу знаний", text: "Простые подсказки, красные флаги и ориентиры цены до разговора с мастером.", route: "knowledge", button: "Открыть базу" },
+        { title: "Выбери время", text: "Бронирование слота, подтверждение приезда и понятные правила отмены.", route: "booking", button: "Выбрать слот" }
+      ],
+      next: "Клиенту не нужно видеть весь комбайн. Ему нужен короткий путь: проблема -> понимание -> мастер -> отзыв.",
+      nav: ["dashboard", "requests", "knowledge", "booking", "arbitration"]
+    },
+    master: {
+      title: "Кабинет мастера",
+      subtitle: "Взять работу, приехать по слоту, зафиксировать доказательства и вести клиентов.",
+      steps: [
+        { title: "Найди подходящие заявки", text: "Смотри город, категорию, срочность и бюджет без лишнего шума.", route: "requests", button: "Смотреть заявки" },
+        { title: "Подтверди приезд", text: "Check-in с временем платформы, GPS и доказательством для минимального выезда.", route: "checkin", button: "Открыть check-in" },
+        { title: "Веди склад", text: "Запчасти, поставщики, гарантия и история работ в одном месте.", route: "crm", button: "CRM и склад" }
+      ],
+      next: "Мастеру нужна скорость: принять, приехать, доказать, закрыть работу, получить отзыв.",
+      nav: ["dashboard", "requests", "booking", "checkin", "crm", "knowledge", "arbitration"]
+    },
+    store: {
+      title: "Кабинет магазина",
+      subtitle: "Показывать мастерам запчасти тогда, когда они реально нужны в заказе.",
+      steps: [
+        { title: "Каталог и остатки", text: "SKU, цена, остаток и поставщик. Потом добавим резерв под заказ.", route: "crm", button: "Смотреть склад" },
+        { title: "Запчасти к симптомам", text: "База знаний связывает поломку, деталь и совместимость.", route: "knowledge", button: "База знаний" },
+        { title: "Спорные случаи", text: "История заказа помогает понять, кто и что согласовал.", route: "arbitration", button: "Арбитраж" }
+      ],
+      next: "Магазину не нужен маркетплейс ради маркетплейса. Ему нужны продажи деталей в момент ремонта.",
+      nav: ["dashboard", "crm", "knowledge", "arbitration"]
+    },
+    support: {
+      title: "Кабинет поддержки",
+      subtitle: "Видеть спор, доказательства, переписку и принимать понятное решение.",
+      steps: [
+        { title: "Разобрать спор", text: "Заявка, причина, статус, доказательства приезда и история согласований.", route: "arbitration", button: "Очередь споров" },
+        { title: "Проверить check-in", text: "Время платформы, GPS и запись события защищают обе стороны.", route: "checkin", button: "Доказательства" },
+        { title: "Посмотреть заявки", text: "Все статусы работ на одной странице для быстрой поддержки.", route: "requests", button: "Заявки" }
+      ],
+      next: "Поддержка должна видеть доказательства, а не слушать два эмоциональных рассказа.",
+      nav: ["dashboard", "arbitration", "requests", "checkin", "forum", "admin"]
+    },
+    admin: {
+      title: "Кабинет администратора",
+      subtitle: "Управление ролями, пользователями, категориями, монетизацией и правилами платформы.",
+      steps: [
+        { title: "Смотреть систему", text: "Пользователи, заявки, категории, споры и операционные метрики.", route: "admin", button: "Админка" },
+        { title: "Настроить правила", text: "Минимальный выезд, рейтинги, модерация, платные функции.", route: "arbitration", button: "Правила и споры" },
+        { title: "Проверить продукт", text: "Переключай демо-роли и смотри путь глазами каждого пользователя.", route: "dashboard", button: "Демо ролей" }
+      ],
+      next: "Админу нужна полная картина, но пользователям ее показывать нельзя.",
+      nav: ["dashboard", "requests", "knowledge", "booking", "checkin", "crm", "forum", "arbitration", "admin"]
+    }
+  };
+
   const statusNames = {
     open: "Новая",
     booked: "Забронирована",
@@ -352,8 +410,17 @@
     render();
   }
 
+  function getVisibleNavItems() {
+    const role = roleFlows[state.role] || roleFlows.client;
+    const ids = new Set(role.nav);
+    if (state.route && !ids.has(state.route)) {
+      ids.add(state.route);
+    }
+    return navItems.filter((item) => ids.has(item.id));
+  }
+
   function renderNav() {
-    navList.innerHTML = navItems
+    navList.innerHTML = getVisibleNavItems()
       .map(
         (item) => `
           <button class="nav-button ${state.route === item.id ? "active" : ""}" data-route="${item.id}">
@@ -420,39 +487,65 @@
     const avgRating = (
       state.masters.reduce((sum, master) => sum + master.rating, 0) / state.masters.length
     ).toFixed(2);
+    const flow = roleFlows[state.role] || roleFlows.client;
 
     return `
-      <div class="grid-4">
-        <article class="card metric">
-          <span class="eyebrow">Заявки</span>
-          <strong>${active}</strong>
-          <p>Новые, забронированные и спорные работы.</p>
-        </article>
-        <article class="card metric">
-          <span class="eyebrow">Бронирования</span>
-          <strong>${booked}</strong>
-          <p>Слоты мастеров с подтверждением клиента.</p>
-        </article>
-        <article class="card metric">
-          <span class="eyebrow">Доказательства</span>
-          <strong>${proofs}</strong>
-          <p>Check-in записи приезда мастеров.</p>
-        </article>
-        <article class="card metric">
-          <span class="eyebrow">Рейтинг</span>
-          <strong>${avgRating}</strong>
-          <p>Средняя оценка проверенных мастеров.</p>
-        </article>
-      </div>
+      <section class="panel role-hero">
+        <div>
+          <span class="eyebrow">Демо роли</span>
+          <h2>${escapeHtml(flow.title)}</h2>
+          <p>${escapeHtml(flow.subtitle)}</p>
+        </div>
+        <div class="role-tabs" aria-label="Демо-переключение ролей">
+          ${Object.entries(roleNames)
+            .map(
+              ([role, label]) => `
+                <button class="chip ${state.role === role ? "active" : ""}" data-action="switch-role" data-role="${role}">
+                  ${escapeHtml(label)}
+                </button>
+              `
+            )
+            .join("")}
+        </div>
+      </section>
+
+      <section class="grid-3 role-steps">
+        ${flow.steps
+          .map(
+            (step, index) => `
+              <article class="card role-step">
+                <span class="step-number">${index + 1}</span>
+                <h3>${escapeHtml(step.title)}</h3>
+                <p>${escapeHtml(step.text)}</p>
+                <button class="button" data-action="go" data-route="${step.route}">${escapeHtml(step.button)}</button>
+              </article>
+            `
+          )
+          .join("")}
+      </section>
+
+      <section class="panel">
+        <div class="list-head">
+          <div>
+            <span class="eyebrow">Главная мысль</span>
+            <h2>${escapeHtml(flow.next)}</h2>
+          </div>
+        </div>
+        <div class="simple-metrics">
+          <span class="pill">Заявки <strong>${active}</strong></span>
+          <span class="pill">Брони <strong>${booked}</strong></span>
+          <span class="pill">Check-in <strong>${proofs}</strong></span>
+          <span class="pill">Средний рейтинг <strong>${avgRating}</strong></span>
+        </div>
+      </section>
 
       <div class="grid-2">
         <section class="panel">
           <div class="list-head">
             <div>
-              <span class="eyebrow">Быстрый сценарий</span>
-              <h2>Создать заявку и подобрать мастера</h2>
+              <span class="eyebrow">Как работает платформа</span>
+              <h2>Заявка -> мастер -> доказательство -> отзыв</h2>
             </div>
-            <button class="button" data-action="go" data-route="requests">Создать</button>
           </div>
           <div class="map-visual">
             <img src="./assets/service-board.svg" alt="Схема работы сервиса: заявка, мастер, доказательство, отзыв" />
@@ -964,6 +1057,15 @@
       });
     });
 
+    document.querySelectorAll("[data-action='switch-role']").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.role = button.dataset.role;
+        state.route = "dashboard";
+        saveState();
+        render();
+      });
+    });
+
     document.querySelectorAll("[data-action='assign']").forEach((button) => {
       button.addEventListener("click", () => openAssignDialog(Number(button.dataset.requestId)));
     });
@@ -1357,6 +1459,7 @@
 
   roleSelect.addEventListener("change", () => {
     state.role = roleSelect.value;
+    state.route = "dashboard";
     saveState();
     render();
   });
@@ -1376,7 +1479,7 @@
   }, 1000);
 
   if ("serviceWorker" in navigator && location.protocol !== "file:") {
-    navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+    navigator.serviceWorker.register("./service-worker.js?v=4").catch(() => {});
   }
 
   async function boot() {
