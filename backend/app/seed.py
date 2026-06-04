@@ -1,10 +1,43 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 
 from app import models
+from app.security import hash_password
+
+
+def sync_sequences(db: Session) -> None:
+    tables = [
+        "users",
+        "masters",
+        "service_requests",
+        "bookings",
+        "forum_topics",
+        "disputes",
+        "proof_logs",
+    ]
+    for table in tables:
+        db.execute(
+            text(
+                f"""
+                SELECT setval(
+                    pg_get_serial_sequence('{table}', 'id'),
+                    COALESCE((SELECT MAX(id) FROM {table}), 1),
+                    true
+                )
+                """
+            )
+        )
+    db.commit()
 
 
 def seed_database(db: Session) -> None:
-    if db.query(models.User).first():
+    existing_user = db.query(models.User).first()
+    if existing_user:
+        existing_auth = db.query(models.AuthAccount).filter(models.AuthAccount.user_id == existing_user.id).first()
+        if not existing_auth:
+            db.add(models.AuthAccount(user_id=existing_user.id, password_hash=hash_password("demo12345")))
+            db.commit()
+        sync_sequences(db)
         return
 
     db.add(
@@ -18,6 +51,8 @@ def seed_database(db: Session) -> None:
             trust=86,
         )
     )
+    db.flush()
+    db.add(models.AuthAccount(user_id=1, password_hash=hash_password("demo12345")))
 
     db.add_all(
         [
@@ -206,3 +241,4 @@ def seed_database(db: Session) -> None:
     )
 
     db.commit()
+    sync_sequences(db)

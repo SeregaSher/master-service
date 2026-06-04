@@ -2,7 +2,7 @@ import time
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
@@ -12,6 +12,7 @@ from app import models, schemas
 from app.config import settings
 from app.database import Base, SessionLocal, engine, get_db
 from app.seed import seed_database
+from app.security import create_token, hash_password, verify_password, verify_token
 from app.serializers import (
     booking_to_dict,
     dispute_to_dict,
@@ -56,9 +57,65 @@ app.add_middleware(
 )
 
 
+def get_current_user(
+    authorization: str | None = Header(default=None),
+    db: Session = Depends(get_db),
+) -> models.User:
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="Missing bearer token")
+    user_id = verify_token(authorization.split(" ", 1)[1].strip())
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    user = db.get(models.User, user_id)
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    return user
+
+
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok", "app": settings.app_name}
+
+
+@app.post("/api/auth/register")
+def register(payload: schemas.RegisterCreate, db: Session = Depends(get_db)) -> dict:
+    email = payload.email.strip().lower()
+    if db.query(models.User).filter(models.User.email == email).first():
+        raise HTTPException(status_code=409, detail="Email already registered")
+
+    allowed_roles = {"client", "master", "store"}
+    role = payload.role if payload.role in allowed_roles else "client"
+    user = models.User(
+        name=payload.name.strip(),
+        email=email,
+        role=role,
+        rating=5.0,
+        balance=0,
+        trust=70,
+    )
+    db.add(user)
+    db.flush()
+    db.add(models.AuthAccount(user_id=user.id, password_hash=hash_password(payload.password)))
+    db.commit()
+    db.refresh(user)
+    return {"token": create_token(user.id), "user": user_to_dict(user), "role": user.role}
+
+
+@app.post("/api/auth/login")
+def login(payload: schemas.LoginCreate, db: Session = Depends(get_db)) -> dict:
+    email = payload.email.strip().lower()
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    account = db.query(models.AuthAccount).filter(models.AuthAccount.user_id == user.id).first()
+    if not account or not verify_password(payload.password, account.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    return {"token": create_token(user.id), "user": user_to_dict(user), "role": user.role}
+
+
+@app.get("/api/auth/me")
+def me(user: models.User = Depends(get_current_user)) -> dict:
+    return {"user": user_to_dict(user), "role": user.role}
 
 
 @app.get("/api/bootstrap")
@@ -197,6 +254,7 @@ def reset_demo(db: Session = Depends(get_db)) -> dict:
         models.KnowledgeArticle,
         models.ServiceRequest,
         models.Master,
+        models.AuthAccount,
         models.User,
     ]
     for model in deletion_order:

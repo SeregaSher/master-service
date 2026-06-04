@@ -62,6 +62,21 @@ Frontend берет данные из backend через nginx proxy:
 
 Данные хранятся в PostgreSQL volume `master_service_postgres_data`.
 
+Auth MVP:
+
+```text
+POST /api/auth/register
+POST /api/auth/login
+GET  /api/auth/me
+```
+
+Демо-логин:
+
+```text
+demo@wpservice.co.il
+demo12345
+```
+
 ## Внешний доступ через Cloudflare
 
 1. В Cloudflare Dashboard открой `Networking` -> `Tunnels`.

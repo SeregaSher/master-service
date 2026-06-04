@@ -1,6 +1,18 @@
 from pydantic import BaseModel, Field
 
 
+class RegisterCreate(BaseModel):
+    name: str
+    email: str
+    password: str = Field(min_length=6)
+    role: str = "client"
+
+
+class LoginCreate(BaseModel):
+    email: str
+    password: str
+
+
 class RequestCreate(BaseModel):
     client: str
     category: str

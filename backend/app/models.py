@@ -17,6 +17,14 @@ class User(Base):
     trust: Mapped[int] = mapped_column(Integer, default=80)
 
 
+class AuthAccount(Base):
+    __tablename__ = "auth_accounts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+
+
 class Master(Base):
     __tablename__ = "masters"
 
