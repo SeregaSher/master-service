@@ -1,4 +1,4 @@
-const CACHE_NAME = "wp-service-mvp-v1";
+const CACHE_NAME = "wp-service-mvp-v2";
 const ASSETS = [
   "./index.html",
   "./styles.css",

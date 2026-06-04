@@ -1,5 +1,6 @@
 (function () {
-  const storageKey = "wp-service-mvp-state-v1";
+  const storageKey = "wp-service-mvp-ui-v2";
+  const apiBase = "/api";
 
   const navItems = [
     { id: "dashboard", title: "Панель", icon: "DB" },
@@ -189,6 +190,7 @@
   let state = loadState();
   let kbAudience = "all";
   let cameraStream = null;
+  let apiOnline = false;
 
   const root = document.getElementById("appRoot");
   const pageTitle = document.getElementById("pageTitle");
@@ -213,10 +215,58 @@
   }
 
   function saveState() {
-    localStorage.setItem(storageKey, JSON.stringify(state));
+    localStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        route: state.route,
+        role: state.role,
+        theme: state.theme
+      })
+    );
   }
 
-  function resetDemo() {
+  async function apiRequest(path, options = {}) {
+    const response = await fetch(`${apiBase}${path}`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.headers || {})
+      },
+      ...options
+    });
+    if (!response.ok) {
+      throw new Error(`API ${response.status}`);
+    }
+    return response.json();
+  }
+
+  async function loadRemoteState() {
+    try {
+      const data = await apiRequest("/bootstrap");
+      state = { ...state, ...data };
+      apiOnline = true;
+      saveState();
+    } catch (error) {
+      apiOnline = false;
+    }
+  }
+
+  async function reloadRemoteState() {
+    await loadRemoteState();
+    render();
+  }
+
+  async function resetDemo() {
+    if (apiOnline) {
+      try {
+        const data = await apiRequest("/reset-demo", { method: "POST" });
+        state = { ...state, ...data, route: "dashboard", role: state.role, theme: state.theme };
+        saveState();
+        render();
+        return;
+      } catch (error) {
+        apiOnline = false;
+      }
+    }
     state = JSON.parse(JSON.stringify(seedState));
     saveState();
     render();
@@ -312,6 +362,7 @@
         </div>
       </div>
       <div class="balance-pills">
+        <span class="pill">API <strong>${apiOnline ? "online" : "demo"}</strong></span>
         <span class="pill">Баланс <strong>${formatMoney(user.balance)}</strong></span>
         <span class="pill">Активные заявки <strong>${state.requests.filter((item) => item.status !== "done").length}</strong></span>
         <button class="ghost-button" data-action="reset">Сбросить демо</button>
@@ -937,20 +988,36 @@
     if (createProof) createProof.addEventListener("click", createProofLog);
   }
 
-  function createRequest(event) {
+  async function createRequest(event) {
     event.preventDefault();
     const data = Object.fromEntries(new FormData(event.target).entries());
-    state.requests.unshift({
-      id: Date.now(),
+    const payload = {
       client: data.client,
       category: data.category,
       city: data.city,
       symptom: data.symptom,
       budget: Number(data.budget) || 0,
       urgency: data.urgency,
+      slot: data.slot || ""
+    };
+    if (apiOnline) {
+      try {
+        await apiRequest("/requests", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+        event.target.reset();
+        await reloadRemoteState();
+        return;
+      } catch (error) {
+        apiOnline = false;
+      }
+    }
+    state.requests.unshift({
+      id: Date.now(),
+      ...payload,
       status: "open",
       masterId: null,
-      slot: data.slot || "",
       evidence: []
     });
     saveState();
@@ -958,31 +1025,61 @@
     render();
   }
 
-  function createForumTopic(event) {
+  async function createForumTopic(event) {
     event.preventDefault();
     const data = Object.fromEntries(new FormData(event.target).entries());
-    state.forum.unshift({
-      id: Date.now(),
+    const payload = {
       author: state.currentUser.name,
       role: roleNames[state.role],
-      topic: data.topic,
+      topic: data.topic
+    };
+    if (apiOnline) {
+      try {
+        await apiRequest("/forum", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+        await reloadRemoteState();
+        return;
+      } catch (error) {
+        apiOnline = false;
+      }
+    }
+    state.forum.unshift({
+      id: Date.now(),
+      ...payload,
       replies: 0
     });
     saveState();
     render();
   }
 
-  function createDispute(event) {
+  async function createDispute(event) {
     event.preventDefault();
     const data = Object.fromEntries(new FormData(event.target).entries());
-    state.disputes.unshift({
-      id: Date.now(),
+    const payload = {
       requestId: Number(data.requestId),
       openedBy: data.openedBy,
-      reason: data.reason,
+      reason: data.reason
+    };
+    if (apiOnline) {
+      try {
+        await apiRequest("/disputes", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+        await reloadRemoteState();
+        return;
+      } catch (error) {
+        apiOnline = false;
+      }
+    }
+    state.disputes.unshift({
+      id: Date.now(),
+      ...payload,
       status: "Сбор доказательств"
     });
-    updateRequest(Number(data.requestId), { status: "dispute" }, false);
+    await updateRequest(Number(data.requestId), { status: "dispute" }, false);
     saveState();
     render();
   }
@@ -1017,15 +1114,41 @@
     });
   }
 
-  function updateRequest(requestId, patch, shouldRender = true) {
+  async function updateRequest(requestId, patch, shouldRender = true) {
+    if (apiOnline) {
+      try {
+        await apiRequest(`/requests/${requestId}`, {
+          method: "PATCH",
+          body: JSON.stringify(patch)
+        });
+        if (shouldRender) {
+          await reloadRemoteState();
+        }
+        return;
+      } catch (error) {
+        apiOnline = false;
+      }
+    }
     state.requests = state.requests.map((request) => (request.id === requestId ? { ...request, ...patch } : request));
     saveState();
     if (shouldRender) render();
   }
 
-  function bookMaster(masterId, slot) {
+  async function bookMaster(masterId, slot) {
     const openRequest = state.requests.find((request) => request.status === "open") || state.requests[0];
     if (!openRequest) return;
+    if (apiOnline) {
+      try {
+        await apiRequest("/bookings", {
+          method: "POST",
+          body: JSON.stringify({ requestId: openRequest.id, masterId, slot })
+        });
+        await reloadRemoteState();
+        return;
+      } catch (error) {
+        apiOnline = false;
+      }
+    }
     state.bookings.unshift({
       id: Date.now(),
       requestId: openRequest.id,
@@ -1033,7 +1156,7 @@
       slot,
       status: "Подтверждено"
     });
-    updateRequest(openRequest.id, { masterId, slot, status: "booked" });
+    await updateRequest(openRequest.id, { masterId, slot, status: "booked" });
   }
 
   async function enableCamera() {
@@ -1068,18 +1191,33 @@
     );
   }
 
-  function createProofLog() {
+  async function createProofLog() {
     const select = document.getElementById("checkinRequest");
     const geo = document.getElementById("proofGeo");
     const requestId = Number(select.value);
-    state.proofLog.unshift({
-      id: Date.now(),
+    const payload = {
       requestId,
       createdAt: nowLabel(),
       geo: geo ? geo.textContent : "GPS не указан",
       note: "Мастер зафиксировал приезд. Клиент не открыл дверь или отказался от работ."
+    };
+    if (apiOnline) {
+      try {
+        await apiRequest("/proofs", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+        await reloadRemoteState();
+        return;
+      } catch (error) {
+        apiOnline = false;
+      }
+    }
+    state.proofLog.unshift({
+      id: Date.now(),
+      ...payload
     });
-    updateRequest(requestId, { status: "proof" }, false);
+    await updateRequest(requestId, { status: "proof" }, false);
     saveState();
     render();
   }
@@ -1127,5 +1265,11 @@
     navigator.serviceWorker.register("./service-worker.js").catch(() => {});
   }
 
-  render();
+  async function boot() {
+    render();
+    await loadRemoteState();
+    render();
+  }
+
+  boot();
 })();

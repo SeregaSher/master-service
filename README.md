@@ -42,7 +42,25 @@ docker compose up -d --build
 ```text
 http://localhost:3010
 http://localhost:3010/health
+http://localhost:3010/api/bootstrap
+http://localhost:8010/health
 ```
+
+## Backend API
+
+Frontend берет данные из backend через nginx proxy:
+
+```text
+/api/bootstrap
+/api/requests
+/api/bookings
+/api/forum
+/api/disputes
+/api/proofs
+/api/reset-demo
+```
+
+Данные хранятся в PostgreSQL volume `master_service_postgres_data`.
 
 ## Внешний доступ через Cloudflare
 

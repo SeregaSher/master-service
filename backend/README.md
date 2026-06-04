@@ -1,33 +1,32 @@
-# Backend план
+# Backend
 
-В этой версии backend еще не поднят, потому что на машине сейчас нет Python/Node в PATH. MVP работает как автономный web-прототип.
+FastAPI backend для WP Service Master.
 
-## Рекомендуемый стек
+## Что есть
 
-- Python 3.12
-- FastAPI
-- PostgreSQL
-- Redis
-- SQLAlchemy или SQLModel
-- Alembic migrations
-- JWT sessions + Google OAuth
-- aiogram для Telegram-бота
+- FastAPI API.
+- PostgreSQL через Docker Compose.
+- Автоматическое создание таблиц на старте.
+- Seed-данные для мастеров, заявок, базы знаний, склада, форума и споров.
+- Endpoints для заявок, бронирований, форума, споров и check-in доказательств.
 
-## Порты
+## Локально
+
+Backend доступен внутри Docker-сети как:
 
 ```text
-Frontend: 3000
-Backend:  8010
-Bot:      8090
+http://backend:8000
 ```
 
-## Первый backend-спринт
+С хоста:
 
-1. Auth и роли.
-2. CRUD заявок.
-3. CRUD мастеров.
-4. Бронирование.
-5. База знаний.
-6. Check-in: server time, GPS, фото.
-7. Отзывы.
-8. Споры.
+```text
+http://localhost:8010
+```
+
+Через frontend/nginx:
+
+```text
+http://localhost:3010/api/bootstrap
+https://app.wpservice.co.il/api/bootstrap
+```
