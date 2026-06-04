@@ -1,4 +1,7 @@
 (function () {
+  const pushLog = window.__wpPushLog || function () {};
+  pushLog("info", "app.js start " + (window.__WP_VERSION__ || ""));
+
   const storageKey = "wp-service-mvp-ui-v2";
   const apiBase = "/api";
 
@@ -287,6 +290,7 @@
   }
 
   async function apiRequest(path, options = {}) {
+    pushLog("info", `API ${options.method || "GET"} ${path}`);
     const headers = {
       "Content-Type": "application/json",
       ...(state.authToken ? { Authorization: `Bearer ${state.authToken}` } : {}),
@@ -297,6 +301,7 @@
       ...options
     });
     if (!response.ok) {
+      pushLog("error", `API failed ${path}`, response.status);
       throw new Error(`API ${response.status}`);
     }
     return response.json();
@@ -306,6 +311,7 @@
     try {
       const data = await apiRequest("/bootstrap");
       state = { ...state, ...data };
+      pushLog("info", "bootstrap ok", `${data.requests?.length || 0} requests`);
       if (state.authToken) {
         try {
           const me = await apiRequest("/auth/me");
@@ -319,6 +325,7 @@
       saveState();
     } catch (error) {
       apiOnline = false;
+      pushLog("error", "bootstrap failed, demo fallback", error.message || error);
     }
   }
 
@@ -452,6 +459,7 @@
   }
 
   function render() {
+    pushLog("info", "render " + state.route + " / " + state.role);
     applyTheme();
     setClock();
     if (authButton) {
@@ -478,6 +486,7 @@
 
     root.innerHTML = (renderers[state.route] || renderDashboard)();
     bindPageEvents();
+    pushLog("info", "render complete");
   }
 
   function renderDashboard() {
@@ -1472,6 +1481,28 @@
 
   authButton.addEventListener("click", openAuthDialog);
 
+  const debugToggle = document.getElementById("debugToggle");
+  const debugPanel = document.getElementById("debugPanel");
+  const debugReset = document.getElementById("debugReset");
+  if (debugToggle && debugPanel) {
+    debugToggle.addEventListener("click", () => debugPanel.classList.toggle("open"));
+  }
+  if (debugReset) {
+    debugReset.addEventListener("click", async () => {
+      pushLog("info", "cache reset requested");
+      localStorage.removeItem(storageKey);
+      if ("serviceWorker" in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map((registration) => registration.unregister()));
+      }
+      if ("caches" in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((key) => caches.delete(key)));
+      }
+      window.location.reload();
+    });
+  }
+
   setInterval(() => {
     setClock();
     const proofClock = document.getElementById("proofClock");
@@ -1479,13 +1510,22 @@
   }, 1000);
 
   if ("serviceWorker" in navigator && location.protocol !== "file:") {
-    navigator.serviceWorker.register("./service-worker.js?v=4").catch(() => {});
+    navigator.serviceWorker
+      .register("./service-worker.js?v=5")
+      .then(() => pushLog("info", "service worker registered v5"))
+      .catch((error) => pushLog("error", "service worker failed", error.message || error));
   }
 
   async function boot() {
-    render();
-    await loadRemoteState();
-    render();
+    try {
+      render();
+      await loadRemoteState();
+      render();
+      pushLog("info", "boot complete");
+    } catch (error) {
+      pushLog("error", "boot crashed", error.stack || error.message || error);
+      throw error;
+    }
   }
 
   boot();

@@ -741,6 +741,68 @@ dialog::backdrop {
   background: rgba(17, 26, 30, 0.42);
 }
 
+.debug-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  bottom: 12px;
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  font-size: 12px;
+  max-height: 220px;
+  max-width: min(520px, calc(100vw - 24px));
+  overflow: hidden;
+  position: fixed;
+  right: 12px;
+  width: 420px;
+  z-index: 20;
+}
+
+.debug-panel.is-error {
+  border-color: var(--coral);
+}
+
+.debug-head,
+.debug-actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  padding: 8px 10px;
+}
+
+.debug-head {
+  border-bottom: 1px solid var(--line);
+}
+
+.debug-toggle,
+.debug-actions button,
+.debug-actions a {
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--ink);
+  font-weight: 800;
+  padding: 5px 8px;
+  text-decoration: none;
+}
+
+.debug-lines {
+  display: none;
+  max-height: 130px;
+  overflow: auto;
+  padding: 8px 10px;
+}
+
+.debug-panel.open .debug-lines {
+  display: grid;
+  gap: 6px;
+}
+
+.debug-lines span {
+  color: var(--muted);
+}
+
 .dialog-header {
   align-items: center;
   border-bottom: 1px solid var(--line);

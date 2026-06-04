@@ -9,6 +9,39 @@
     <link rel="stylesheet" href="./styles.css?v=4" />
   </head>
   <body>
+    <script>
+      window.__WP_VERSION__ = "v5";
+      window.__wpLog = [];
+      window.__wpPushLog = function (level, message, detail) {
+        var entry = {
+          time: new Date().toLocaleTimeString(),
+          level: level,
+          message: message,
+          detail: detail ? String(detail).slice(0, 220) : ""
+        };
+        window.__wpLog.push(entry);
+        window.__wpLog = window.__wpLog.slice(-8);
+        var box = document.getElementById("debugPanel");
+        var lines = document.getElementById("debugLines");
+        var badge = document.getElementById("debugBadge");
+        if (badge) badge.textContent = level === "error" ? "Ошибка" : "Диагностика";
+        if (box && level === "error") box.classList.add("is-error");
+        if (lines) {
+          lines.innerHTML = window.__wpLog
+            .map(function (item) {
+              return "<div><strong>" + item.time + " " + item.level + "</strong> " + item.message + (item.detail ? "<br><span>" + item.detail + "</span>" : "") + "</div>";
+            })
+            .join("");
+        }
+      };
+      window.onerror = function (message, source, lineno, colno, error) {
+        window.__wpPushLog("error", "JS error " + lineno + ":" + colno, message || (error && error.stack));
+      };
+      window.onunhandledrejection = function (event) {
+        window.__wpPushLog("error", "Promise error", event.reason && (event.reason.stack || event.reason.message || event.reason));
+      };
+      window.__wpPushLog("info", "HTML loaded " + window.__WP_VERSION__);
+    </script>
     <div class="app-shell">
       <aside class="sidebar" aria-label="Главная навигация">
         <div class="brand">
@@ -73,6 +106,19 @@
       <div id="dialogBody"></div>
     </dialog>
 
-    <script src="./app.js?v=4"></script>
+    <aside class="debug-panel" id="debugPanel" aria-live="polite">
+      <div class="debug-head">
+        <strong id="debugBadge">Диагностика</strong>
+        <button class="debug-toggle" id="debugToggle" type="button">Логи</button>
+      </div>
+      <div class="debug-lines" id="debugLines"></div>
+      <div class="debug-actions">
+        <button type="button" id="debugReset">Сброс cache</button>
+        <a href="./app.js?v=5" target="_blank" rel="noreferrer">JS</a>
+        <a href="./api/bootstrap" target="_blank" rel="noreferrer">API</a>
+      </div>
+    </aside>
+
+    <script src="./app.js?v=5"></script>
   </body>
 </html>
