@@ -34,6 +34,7 @@
     route: "dashboard",
     role: "client",
     theme: "light",
+    authToken: "",
     currentUser: {
       id: 1,
       name: "Демо пользователь",
@@ -195,6 +196,7 @@
   const root = document.getElementById("appRoot");
   const pageTitle = document.getElementById("pageTitle");
   const roleSelect = document.getElementById("roleSelect");
+  const authButton = document.getElementById("authButton");
   const themeToggle = document.getElementById("themeToggle");
   const themeIcon = document.getElementById("themeIcon");
   const themeLabel = document.getElementById("themeLabel");
@@ -220,17 +222,20 @@
       JSON.stringify({
         route: state.route,
         role: state.role,
-        theme: state.theme
+        theme: state.theme,
+        authToken: state.authToken || ""
       })
     );
   }
 
   async function apiRequest(path, options = {}) {
+    const headers = {
+      "Content-Type": "application/json",
+      ...(state.authToken ? { Authorization: `Bearer ${state.authToken}` } : {}),
+      ...(options.headers || {})
+    };
     const response = await fetch(`${apiBase}${path}`, {
-      headers: {
-        "Content-Type": "application/json",
-        ...(options.headers || {})
-      },
+      headers,
       ...options
     });
     if (!response.ok) {
@@ -243,6 +248,15 @@
     try {
       const data = await apiRequest("/bootstrap");
       state = { ...state, ...data };
+      if (state.authToken) {
+        try {
+          const me = await apiRequest("/auth/me");
+          state.currentUser = me.user;
+          state.role = me.role || state.role;
+        } catch (error) {
+          state.authToken = "";
+        }
+      }
       apiOnline = true;
       saveState();
     } catch (error) {
@@ -373,6 +387,9 @@
   function render() {
     applyTheme();
     setClock();
+    if (authButton) {
+      authButton.textContent = state.authToken ? "Выйти" : "Войти";
+    }
     roleSelect.value = state.role;
     renderNav();
     renderUserStrip();
@@ -1228,6 +1245,101 @@
     dialog.showModal();
   }
 
+  function openAuthDialog() {
+    if (state.authToken) {
+      state.authToken = "";
+      state.currentUser = seedState.currentUser;
+      state.role = "client";
+      saveState();
+      render();
+      return;
+    }
+
+    dialogTitle.textContent = "Вход и регистрация";
+    dialogBody.innerHTML = `
+      <div class="grid-2">
+        <form class="panel" data-form="login">
+          <span class="eyebrow">Вход</span>
+          <label class="field">
+            <span>Email</span>
+            <input name="email" type="email" value="demo@wpservice.co.il" required />
+          </label>
+          <label class="field">
+            <span>Пароль</span>
+            <input name="password" type="password" value="demo12345" required />
+          </label>
+          <button class="button" type="submit">Войти</button>
+        </form>
+        <form class="panel" data-form="register">
+          <span class="eyebrow">Регистрация</span>
+          <label class="field">
+            <span>Имя</span>
+            <input name="name" placeholder="Имя" required />
+          </label>
+          <label class="field">
+            <span>Email</span>
+            <input name="email" type="email" placeholder="you@example.com" required />
+          </label>
+          <label class="field">
+            <span>Пароль</span>
+            <input name="password" type="password" minlength="6" required />
+          </label>
+          <label class="field">
+            <span>Тип аккаунта</span>
+            <select name="role">
+              <option value="client">Клиент</option>
+              <option value="master">Мастер</option>
+              <option value="store">Магазин</option>
+            </select>
+          </label>
+          <button class="button" type="submit">Создать аккаунт</button>
+        </form>
+      </div>
+    `;
+    dialog.showModal();
+
+    dialogBody.querySelector("[data-form='login']").addEventListener("submit", submitLogin);
+    dialogBody.querySelector("[data-form='register']").addEventListener("submit", submitRegister);
+  }
+
+  async function submitLogin(event) {
+    event.preventDefault();
+    const data = Object.fromEntries(new FormData(event.target).entries());
+    try {
+      const result = await apiRequest("/auth/login", {
+        method: "POST",
+        body: JSON.stringify(data)
+      });
+      state.authToken = result.token;
+      state.currentUser = result.user;
+      state.role = result.role || state.role;
+      saveState();
+      dialog.close();
+      render();
+    } catch (error) {
+      showNotice("Вход не удался", "Проверь email и пароль.");
+    }
+  }
+
+  async function submitRegister(event) {
+    event.preventDefault();
+    const data = Object.fromEntries(new FormData(event.target).entries());
+    try {
+      const result = await apiRequest("/auth/register", {
+        method: "POST",
+        body: JSON.stringify(data)
+      });
+      state.authToken = result.token;
+      state.currentUser = result.user;
+      state.role = result.role || state.role;
+      saveState();
+      dialog.close();
+      render();
+    } catch (error) {
+      showNotice("Регистрация не удалась", "Такой email уже может быть зарегистрирован.");
+    }
+  }
+
   document.addEventListener("click", (event) => {
     const routeButton = event.target.closest("[data-route]");
     if (routeButton && routeButton.classList.contains("nav-button")) {
@@ -1254,6 +1366,8 @@
     saveState();
     render();
   });
+
+  authButton.addEventListener("click", openAuthDialog);
 
   setInterval(() => {
     setClock();

@@ -276,6 +276,10 @@ textarea {
   color: var(--gold);
 }
 
+.auth-button {
+  min-height: 54px;
+}
+
 textarea {
   min-height: 92px;
   resize: vertical;
@@ -742,7 +746,8 @@ dialog::backdrop {
 
   .server-clock,
   .role-switch,
-  .theme-toggle {
+  .theme-toggle,
+  .auth-button {
     flex: 1 1 180px;
   }
 
