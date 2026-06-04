@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#135e63" />
+    <title>WP Service Master</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Главная навигация">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">WP</div>
+          <div>
+            <strong>WP Service</strong>
+            <span>мастера, клиенты, доверие</span>
+          </div>
+        </div>
+
+        <nav class="nav-list" id="navList"></nav>
+
+        <div class="sidebar-card">
+          <span class="eyebrow">MVP режим</span>
+          <p>Данные хранятся локально в браузере. Backend подключается следующим этапом.</p>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow" id="todayLabel">WP Service</p>
+            <h1 id="pageTitle">Панель</h1>
+          </div>
+
+          <div class="topbar-actions">
+            <button class="theme-toggle" id="themeToggle" type="button" aria-label="Переключить тему">
+              <span id="themeIcon">☀</span>
+              <strong id="themeLabel">Светлая</strong>
+            </button>
+
+            <div class="server-clock" aria-label="Серверное время">
+              <span>Время платформы</span>
+              <strong id="serverClock">--:--:--</strong>
+            </div>
+
+            <label class="role-switch">
+              <span>Роль</span>
+              <select id="roleSelect">
+                <option value="client">Клиент</option>
+                <option value="master">Мастер</option>
+                <option value="store">Магазин</option>
+                <option value="support">Поддержка</option>
+                <option value="admin">Админ</option>
+              </select>
+            </label>
+          </div>
+        </header>
+
+        <section class="user-strip" id="userStrip"></section>
+        <section class="content-grid" id="appRoot" aria-live="polite"></section>
+      </main>
+    </div>
+
+    <dialog id="appDialog">
+      <div class="dialog-header">
+        <strong id="dialogTitle">Действие</strong>
+        <button class="icon-button" data-close-dialog aria-label="Закрыть">X</button>
+      </div>
+      <div id="dialogBody"></div>
+    </dialog>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

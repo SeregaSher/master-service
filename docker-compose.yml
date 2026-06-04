@@ -1,0 +1,10 @@
+services:
+  master_web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: master_service_web
+    restart: unless-stopped
+    ports:
+      - "${MASTER_WEB_PORT:-3010}:80"
+

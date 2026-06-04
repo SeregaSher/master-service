@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 460" role="img" aria-labelledby="title desc">
+  <title id="title">WP Service operations board</title>
+  <desc id="desc">A visual workflow from client request to master visit, evidence, arbitration and review.</desc>
+  <rect width="900" height="460" fill="#eaf3f0"/>
+  <path d="M0 330 C120 290 180 390 300 330 C420 270 520 360 640 300 C760 240 820 280 900 230 L900 460 L0 460 Z" fill="#d7e8e4"/>
+  <g transform="translate(58 58)">
+    <rect width="190" height="122" rx="8" fill="#ffffff" stroke="#bfd4d1"/>
+    <rect x="20" y="22" width="82" height="16" rx="4" fill="#135e63"/>
+    <rect x="20" y="52" width="145" height="10" rx="5" fill="#d7e0df"/>
+    <rect x="20" y="75" width="118" height="10" rx="5" fill="#d7e0df"/>
+    <circle cx="154" cy="30" r="18" fill="#dba63a"/>
+  </g>
+  <g transform="translate(318 58)">
+    <rect width="190" height="122" rx="8" fill="#ffffff" stroke="#bfd4d1"/>
+    <circle cx="60" cy="54" r="28" fill="#135e63"/>
+    <rect x="102" y="30" width="66" height="12" rx="6" fill="#d95745"/>
+    <rect x="102" y="55" width="84" height="10" rx="5" fill="#d7e0df"/>
+    <rect x="102" y="78" width="58" height="10" rx="5" fill="#d7e0df"/>
+  </g>
+  <g transform="translate(578 58)">
+    <rect width="190" height="122" rx="8" fill="#ffffff" stroke="#bfd4d1"/>
+    <rect x="26" y="24" width="92" height="84" rx="8" fill="#18242b"/>
+    <rect x="38" y="36" width="68" height="45" rx="5" fill="#2f6fb0"/>
+    <rect x="132" y="28" width="38" height="38" rx="19" fill="#2b8a55"/>
+    <rect x="132" y="80" width="42" height="11" rx="5" fill="#d7e0df"/>
+  </g>
+  <g fill="none" stroke="#135e63" stroke-width="6" stroke-linecap="round">
+    <path d="M258 120 H305"/>
+    <path d="M518 120 H565"/>
+  </g>
+  <g transform="translate(168 254)">
+    <rect width="188" height="106" rx="8" fill="#ffffff" stroke="#bfd4d1"/>
+    <rect x="22" y="22" width="46" height="46" rx="8" fill="#dba63a"/>
+    <rect x="84" y="26" width="98" height="12" rx="6" fill="#135e63"/>
+    <rect x="84" y="55" width="72" height="10" rx="5" fill="#d7e0df"/>
+    <rect x="84" y="78" width="48" height="10" rx="5" fill="#d7e0df"/>
+  </g>
+  <g transform="translate(428 254)">
+    <rect width="188" height="106" rx="8" fill="#ffffff" stroke="#bfd4d1"/>
+    <path d="M38 67 L72 33 L105 67 L140 29" fill="none" stroke="#2b8a55" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="28" y="84" width="132" height="10" rx="5" fill="#d7e0df"/>
+  </g>
+  <g fill="none" stroke="#d95745" stroke-width="6" stroke-linecap="round">
+    <path d="M395 255 C410 214 496 214 514 248"/>
+    <path d="M650 186 C638 226 600 240 574 254"/>
+  </g>
+</svg>
